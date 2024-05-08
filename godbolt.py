@@ -4,11 +4,12 @@ import subprocess
 current_dir = "/home/alipha/repos/weechat-godbolt"
 snippets = {}           # snippets[channel][nick] == "last geordi command"
 channel_snippets = {}   # last snippet in the channel
+nick_snippets = {}      # last snippet by nick
 
 
 def get_snippet(channel, nick):
     if channel in snippets and nick in snippets[channel]:
-        return snippets[channel[nick]]
+        return snippets[channel][nick]
     else:
         return None
 
@@ -18,6 +19,13 @@ def get_channel_snippet(channel):
         return channel_snippets[channel]
     else:
         return None, None
+
+
+def get_nick_snippet(nick):
+    if nick in nick_snippets:
+        return nick_snippets[nick]
+    else:
+        return None
 
 
 def send_message(servername, channel, message):
@@ -42,14 +50,18 @@ def deny_message(servername, channel, nick):
 
 def run_cmd(data, buf, args):
     buffer = weechat.current_buffer()
+    #weechat.prnt(buffer, weechat.buffer_get_string(buf, "localvar_channel"))
     cmd = args.strip()
     if cmd.find(" ") != -1:
         weechat.prnt(buffer, make_snippet(cmd));
     elif cmd:
-        channel = weechat.buffer_get_string(buffer, "localvar_channel")
-        snippet = get_snippet(channel, cmd)     # cmd is the nick
+        #channel = weechat.buffer_get_string(buffer, "localvar_channel")
+        #weechat.prnt(buffer, "channel: '" + channel + "'")
+        #weechat.prnt(buffer, "nick: '" + cmd + "'")
+        #snippet = get_snippet(channel, cmd)     # cmd is the nick
+        snippet = get_nick_snippet(cmd)
         if snippet:
-            weechat.prnt(buffer, godbolt_message(true, cmd, snippet))
+            weechat.prnt(buffer, godbolt_message(True, cmd, snippet))
         else:
             weechat.prnt(buffer, cmd + " had no previous geordi snippet")
     else:
@@ -57,7 +69,7 @@ def run_cmd(data, buf, args):
         #weechat.prnt(buffer, "channel: " + channel)
         nick, snippet = get_channel_snippet(channel)
         if snippet:
-            weechat.prnt(buffer, godbolt_message(true, nick, snippet))
+            weechat.prnt(buffer, godbolt_message(True, nick, snippet))
         else:
             weechat.prnt(buffer, channel + " had no previous geordi snippet")      
     return weechat.WEECHAT_RC_OK
@@ -65,9 +77,15 @@ def run_cmd(data, buf, args):
 
 def run_privmsg(data, msgtype, servername, args):
     hostmask, chanmsg = str.split(args, "PRIVMSG ", 1)
-    nick, hostname = str.split(hostmask, "!", 1)
-    #nick = hostmask
-    #hostname = 'hostname'
+    hostname = ""
+    nick = hostmask
+    if hostmask.find("!") != -1:
+        nick, hostname = str.split(hostmask, "!", 1)
+   
+    nick = nick[1:]
+    if nick == 'geordi':
+        return args
+
     channel, message = str.split(chanmsg, " :", 1)
     buffer = weechat.info_get("irc_buffer", servername + ',' + channel)
     
@@ -101,10 +119,13 @@ def run_privmsg(data, msgtype, servername, args):
             #    send_message(servername, channel, nick + ": no godbolt snippet found in this channel")
     """
     if message.startswith("{") or message.startswith("<<") or message.startswith("geordi:") or message.startswith("geordi,"):
-        channel_snippets[channel] = message
+        channel_snippets[channel] = nick, message
         if channel not in snippets:
+            #weechat.prnt(buffer, "adding channel: '" + channel + "'")
             snippets[channel] = {}
+        #weechat.prnt(buffer, "adding '" + nick + "' to '" + channel + "' snippets")
         snippets[channel][nick] = message
+        nick_snippets[nick] = message
 
     #url = subprocess.run(["nodejs", current_dir + "/godbolt.js"], input=message[9:], capture_output=True, text=True).stdout
     #weechat.prnt(buffer, url)
