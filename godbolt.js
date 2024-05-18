@@ -26,10 +26,12 @@ async function format(code) {
 async function createPaste(code, version) {
 	let payload = JSON.parse(fs.readFileSync(current_dir + '/godbolt_post.json', 'utf-8'));
 	payload.config.content[0].content[0].content[0].componentState.source = code;
-	payload.config.content[0].content[1].content[0].content[0].componentState.options =
-		'-std=c++' + version + ' ' + payload.config.content[0].content[1].content[0].content[0].componentState.options;
-	payload.config.content[0].content[1].content[1].content[0].componentState.options =
-		'-std=c++' + version + ' ' + payload.config.content[0].content[1].content[1].content[0].componentState.options;
+	payload.config.content[0].content[1].content[1].componentState.options =
+		'-std=c++' + version + ' ' + payload.config.content[0].content[1].content[1].componentState.options;
+	//payload.config.content[0].content[1].content[0].content[0].componentState.options =
+	//	'-std=c++' + version + ' ' + payload.config.content[0].content[1].content[0].content[0].componentState.options;
+	//payload.config.content[0].content[1].content[1].content[0].componentState.options =
+	//	'-std=c++' + version + ' ' + payload.config.content[0].content[1].content[1].content[0].componentState.options;
 
 	const resp = await fetch('https://godbolt.org/api/shortener', {
 		method: 'POST',
@@ -107,7 +109,8 @@ async function run(cmd) {
 	if(cmd == '') return;
 
 	const main = '\n\nint main(int argc, char **argv) ';
-	let preamble = '#include <https://pjboy.cc/util.h>\n#include <bits/stdc++.h>\n\n';
+	//let preamble = '#include <https://pjboy.cc/util.h>\n#include <bits/stdc++.h>\n\n';
+	let preamble = '#include <https://alipha.github.io/weechat-godbolt/util.h>\n#include <bits/stdc++.h>\n\n';
 	//fs.readFileSync('godbolt_preamble.cpp', 'utf-8');
 
 	let usingStd = true;
